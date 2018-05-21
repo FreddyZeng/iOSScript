@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
+# -*- coding: UTF-8 -*-
 
 """
 i18n
 ~~~~
 
-A script for internationalization in iOS projects.
+A tool for internationalization in iOS projects.
 
 Usage:
     1. Open terminal.
@@ -23,9 +24,8 @@ from subprocess import call
 from utils import console
 from utils import file_assistant
 
-
-def _should_skip_line(line):
-    return line == '\n' or line.startswith('//')
+def _should_skip_line(line, commented=False):
+    return line == '\n' or line.startswith('//') or commented
 
 
 def _check_localiztion_format_files(file_paths):
@@ -36,14 +36,21 @@ def _check_localiztion_format_files(file_paths):
         console.print_fail('Checking localizable file failed.')
         exit(1)
 
-# 检测localiztion是不是好格式
+
 def _check_localiztion_format(file_path):
     is_good_format = True
-    with open(file_path, 'r') as source_file: # 尝试用open 打开file 如果成功打开文件，就是source_file.   'r'是以只读的形式打开
-        for index, line in enumerate(source_file):# 遍历文件的行号
-            if _should_skip_line(line):# 如果是注释，则跳过该行
+    with open(file_path, 'r') as source_file:
+        commented = False
+        for index, line in enumerate(source_file):
+            if line.startswith('/*'):
+                commented = True
                 continue
-            if not re.match(config.LOCALIZABLE_FORMAT_RE, line):# 如果localiztion 中的行翻译不合法 "" = "";就不是好格式，返回false
+            if '*/' in line:
+                commented = False
+                continue
+            if _should_skip_line(line, commented):
+                continue
+            if not re.match(config.LOCALIZABLE_FORMAT_RE, line):
                 console.print_warning('Error format in file:\n{}, line: {}'
                                       .format(file_path, index + 1))
                 is_good_format = False
@@ -59,12 +66,23 @@ def _remove_duplicate_strings(file_path):
     keys = []
     lines = []
     with open(file_path, 'r') as source_file:
+        commented = False
         for line in source_file:
-            if _should_skip_line(line):
+            if line.startswith('/*'):
+                commented = True
+                keys.append('')
+                lines.append(line)
+                continue
+            if '*/' in line:
+                commented = False
+                keys.append('')
+                lines.append(line)
+                continue
+            if _should_skip_line(line, commented):
                 keys.append('')
                 lines.append(line)
             else:
-                matchs = re.findall(config.KEY_RE, line)
+                matchs = re.findall(config.KEY, line)
                 if matchs:
                     key = matchs[0]
                     if key not in keys:
@@ -98,7 +116,7 @@ def _add_new_strings(old_files, new_files):
 
 def _get_project_path(args):
     if args.path is None:
-        return os.getcwd() # 返回当前工作目录。
+        return os.getcwd()
     else:
         return args.path
 
@@ -117,12 +135,37 @@ def _get_target_path(args):
         return target_path
 
 
-# 获取所有的文件路径
+def _get_target_didTranslation_path(args):
+    if args.output is None:
+        return os.path.join(os.getcwd(), config.DIDTRANSLATION_TARGET_PATH)
+    else:
+        target_path = args.output
+        try:
+            target = open(target_path, 'w')
+            target.close()
+        except OSError:
+            console.print_fail('Error: Invalid file path %s' % target_path)
+            exit(1)
+        return target_path
+
+def _get_target_allLocal_path(args):
+    if args.output is None:
+        return os.path.join(os.getcwd(), config.SourceFileALL_TARGET_PATH)
+    else:
+        target_path = args.output
+        try:
+            target = open(target_path, 'w')
+            target.close()
+        except OSError:
+            console.print_fail('Error: Invalid file path %s' % target_path)
+            exit(1)
+        return target_path
+
 def _get_source_file_paths(path):
     source_file_paths = file_assistant.get_paths(
-        path,# 文件路径
-        types=config.SOURCE_FILE_TYPES,# 文件类型
-        exclusive_paths=config.SOURCE_FILE_EXCLUSIVE_PATHS)# 排除文件路径
+        path,
+        types=config.SEARCH_TYPES,
+        exclusive_paths=config.SOURCE_FILE_EXCLUSIVE_PATHS)
     if not source_file_paths:
         console.print_fail(
             'No source file found!\n'
@@ -131,51 +174,110 @@ def _get_source_file_paths(path):
     return source_file_paths
 
 
-# 获取本地字符串的多语言翻译文件路径
 def _get_localization_paths(path):
     localization_paths = file_assistant.get_paths(
-        os.path.join(path, config.LOCALIZABLE_FILE_PATH),# 获取LOCALIZABLE的文件夹
-        names=config.LOCALIZABLE_FILE_NAMES,# 获取LOCALIZABLE的文件名字
-        types=config.LOCALIZABLE_FILE_TYPES,# 获取LOCALIZABLE的文件拓展名
-        exclusive_paths=config.LOCALIZABLE_FILE_EXCLUSIVE_PATHS)# 获取LOCALIZABLE排除的文件夹
+        os.path.join(path, config.LOCALIZABLE_FILE_PATH),
+        names=config.LOCALIZABLE_FILE_NAMES,
+        types=config.LOCALIZABLE_FILE_TYPES,
+        exclusive_paths=config.LOCALIZABLE_FILE_EXCLUSIVE_PATHS)
     if not localization_paths:
         console.print_fail('No localization file found!')
-        exit(1)# 没有找到localization_paths
+        exit(1)
     return localization_paths
 
 
-def _get_all_localization_strings(path):
+def _get_all_localization_strings(paths):
     all_localization_strings = set()
-    for path in path:
+    for path in paths:
         with open(path, 'r') as source_file:
             for line in source_file:
-                strings = re.findall(config.LOCALIZABLE_RE, line)# 在一行中，查找所有.local的字符串
+                strings = re.findall(config.LOCALIZABLE_RE, line)
                 for string in strings:
-                    name = string.replace(
-                        'ICXLocalize(@',
-                        '')# 去掉前缀
-                    name = name.replace(
-                        config.LOCALIZABLE_SUFFIX,
-                        '')# 去掉后缀
+                    temp = string.replace(
+                        config.SUFFIX_RAW,
+                        '')
+                    name = temp.replace(
+                        config.PREFIX_RAW,
+                        '')
                     all_localization_strings.add(name)
-    return all_localization_strings # 返回所有文字
+    return all_localization_strings
 
 
 def _find_unlocalized_strings(strings, paths):
     unlocalized_strings = set()
     for name in strings:
         for path in paths:
-            if file_assistant.file_contains(path, r'{}'.format(name)):
-                # 如果path的.localizable文件中，存在key了，则是已经添加
+            if file_assistant.file_contains(path, name):
                 continue
             else:
-                #否则中止循环，添加到为未翻译的数组
+                print('{} not localized in {}'.format(name, path))
                 break
         else:
             continue
+
+        print('add neme:' + name)
         unlocalized_strings.add(name)
     return unlocalized_strings
 
+def _find_didLocalized_strings(strings, paths):
+    didlocalized_strings = set()
+    for name in strings:
+        line = ""
+        for path in paths:
+            line = file_assistant.fileLine_containStartWith(path, name)
+            if len(line) > 0:
+                #print('{} didlocalized in {}'.format(name, path))
+                break
+            else:
+                continue
+        if len(line) > 0:
+            didlocalized_strings.add(line)
+    return didlocalized_strings
+
+
+def replaceLocalizedToSourceFile(localized_keyValues,source_Files):
+    for path in source_Files:
+        with open(path, 'r') as source_file:
+            text = source_file.read()
+            strings = re.findall(config.LOCALIZABLE_RE, text)
+            for string in strings:
+                temp = string.replace(
+                        config.SUFFIX_RAW,
+                        '')
+                name = temp.replace(
+                        config.PREFIX_RAW,
+                        '')
+                name = '{0} ='.format(name)
+                #print('替换字符串:' + string)
+                for localizedLine in localized_keyValues:
+                    if localizedLine.startswith(name) == True:
+                        values = localizedLine.split(' = ')
+                        key = values[0]
+                        value = values[1]
+                        value = value.replace(';\n', '')
+                        newLocalized = '{0}{1}, @{2}{3}'.format(config.CHANGE_PREFIX,key,value,config.CHANGE_SUFFIX)
+                        text = text.replace(string, newLocalized)
+                        print('替换' + string + '成' + newLocalized + '\n')
+
+            with open(path, 'w') as writeSource_file:
+                writeSource_file.write(text)
+    print('替换完成')
+
+def _generate_alllocalized_strings_file(strings, path):
+    with open(path, 'w') as target:
+        for name in sorted(strings):
+            target.write('{0}\n'.format(name))
+    call(['open', path])
+    print('%d all strings found.' % len(strings))
+    console.print_bold('all strings in path: %s' % path)
+
+def _generate_didlocalized_strings_file(strings, path):
+    with open(path, 'w') as target:
+        for name in sorted(strings):
+            target.write('{0}'.format(name))
+    call(['open', path])
+    print('%d didlocalized strings found.' % len(strings))
+    console.print_bold('didlocalized strings in path: %s' % path)
 
 def _generate_unlocalized_strings_file(strings, path):
     with open(path, 'w') as target:
@@ -183,7 +285,7 @@ def _generate_unlocalized_strings_file(strings, path):
             target.write('{0} = {0};\n'.format(name))
     call(['open', path])
     print('%d unlocalized strings found.' % len(strings))
-    console.print_bold('Generated strings path: %s' % path)
+    console.print_bold('unlocalized strings in path: %s' % path)
 
 
 def _get_args():
@@ -191,35 +293,35 @@ def _get_args():
     parser.add_argument(
         "-i",
         "--integrate",
-        help="Integrate new localizable strings.",
+        help="integrate new localizable strings",
         type=str)
     parser.add_argument(
         "-o",
         "--output",
-        help="Set output file path.",
+        help="set output file path",
         type=str)
     parser.add_argument(
         "-p",
         "--path",
-        help="Set project path.",
+        help="set project path",
         type=str)
     parser.add_argument(
         "-r",
         "--remove",
-        help="Remove duplicate localizable strings.",
+        help="remove duplicate localizable strings",
         action='store_true')
     return parser.parse_args()
 
 
 def main():
-    args = _get_args()# 获取args 参数
+    args = _get_args()
 
-    project_path = _get_project_path(args)# 从命令行获取参数。如果不存在path，就使用当前终端的路径
-    print('Current directory: ' + project_path) # 打印当前目录
+    project_path = _get_project_path(args)
+    print('Current directory: ' + project_path)
 
     print('Checking localizable files...')
-    localization_paths = _get_localization_paths(project_path)# 递归获取项目中的所有localization文件路径
-    _check_localiztion_format_files(localization_paths)# 检测所有的localization，看看是不是都以 "" = "";表示
+    localization_paths = _get_localization_paths(project_path)
+    _check_localiztion_format_files(localization_paths)
 
     if args.remove:
         print('Removing duplicate localizable strings...')
@@ -230,19 +332,42 @@ def main():
         _add_new_strings(localization_paths, args.integrate)
         exit(0)
 
+
+    print('Finding alllocalized strings...')
+    source_file_paths = _get_source_file_paths(project_path)
+    all_localization_strings = _get_all_localization_strings(source_file_paths)
+
+    print('Finding didlocalized strings...')
+    didLocalized_strings = _find_didLocalized_strings(all_localization_strings, localization_paths)
+
     print('Finding unlocalized strings...')
-    source_file_paths = _get_source_file_paths(project_path)# 得到所有文件源文件的路径
-    all_localization_strings = _get_all_localization_strings(source_file_paths)# 获取所有的翻译字符串
     unlocalized_strings = _find_unlocalized_strings(all_localization_strings,
-                                                    localization_paths) # 传入一个数组所有需要翻译的字符串，传入iOS项目工程根目录，
-    # 返回所有未翻译的文字unlocalized_strings
+                                                    localization_paths)
+
+
+    if not all_localization_strings:
+        console.print_bold('No localized string found.')
+        exit(0)
+    else:
+        allLocalPath = _get_target_allLocal_path(args)
+        _generate_alllocalized_strings_file(all_localization_strings, allLocalPath)
+
+
+    if not didLocalized_strings:
+        console.print_bold('No didlocalized string found.')
+    else:
+        didTranslationPath = _get_target_didTranslation_path(args)
+        _generate_didlocalized_strings_file(didLocalized_strings, didTranslationPath)
+
 
     if not unlocalized_strings:
         console.print_bold('No unlocalized string found.')
     else:
-        target_path = _get_target_path(args)# 找到了还没翻译的key，获取key导出的路径
-        _generate_unlocalized_strings_file(unlocalized_strings, target_path)# 把需要翻译的key 写出到
+        target_path = _get_target_path(args)
+        _generate_unlocalized_strings_file(unlocalized_strings, target_path)
 
+    if config.ISCHANGE:
+        replaceLocalizedToSourceFile(didLocalized_strings, source_file_paths)
 
 if __name__ == "__main__":
     main()
