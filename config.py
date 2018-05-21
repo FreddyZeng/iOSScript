@@ -1,25 +1,35 @@
 #!/usr/bin/env python3
+# -*- coding: UTF-8 -*-
 
-SOURCE_FILE_TYPES = ['swift', 'json', 'm']
-SOURCE_FILE_EXCLUSIVE_PATHS = ['Pods']
+# The format of your own localizable method.
+# This is an example of '"string".localized'
+PREFIX = 'ICXLocalize\(\@'
+PREFIX_RAW = 'ICXLocalize(@'
+SUFFIX = '\)'
+SUFFIX_RAW = ')'
+KEY = r'"(?:\\.|[^"\\])*"'
+LOCALIZABLE_RE = r'%s%s%s' % (PREFIX, KEY, SUFFIX)
 
-LOCALIZABLE_FILE_PATH = 'Meum/MeumFoundation/BaseObject/Resource/InternationalFile/en.lproj'
+# Specify the path of localizable files in project.
+LOCALIZABLE_FILE_PATH = ''
 LOCALIZABLE_FILE_NAMES = ['Localizable']
 LOCALIZABLE_FILE_TYPES = ['strings']
-LOCALIZABLE_FILE_EXCLUSIVE_PATHS = None
-LOCALIZABLE_SUFFIX = ')'
-DEFAULT_TARGET_PATH = 'generated.strings' # 查找到尚未翻译的key，输出到当前工程的该相对路径下
 
-LOCALIZABLE_RE = r'ICXLocalize\(\@".*?"\)' # 查找源文件中的多语言翻译的正则
+# File types of source file.
+SEARCH_TYPES = ['swift', 'm', 'json']
+SOURCE_FILE_EXCLUSIVE_PATHS = []
+LOCALIZABLE_FILE_EXCLUSIVE_PATHS = []
 
-
-
-KEY_RE = r'"(?:\\.|[^"\\])*"'
-LOCALIZABLE_FORMAT_RE = r'"(?:\\.|[^"\\])*" = "(?:\\.|[^"\\])*";\n' # LOCALIZABLE 文件中的翻译匹配
+LOCALIZABLE_FORMAT_RE = r'"(?:\\.|[^"\\])*"\s*=\s*"(?:\\.|[^"\\])*";\n'
 
 
-ASSET_TYPES = ['imageset', 'mp3', 'mp4', 'ttf', 'otf']
-ASSET_SOURCE_FILE_TYPES = ['swift', 'm', 'json', 'xib',
-                           'storyboard', 'js', 'map', 'plist']
-ASSET_PATH_SUFFIX = '/DeviceManager/Class/Anima'
-ASSET_DEFAULT_COUNT = 50
+SourceFileALL_TARGET_PATH = 'SourceFileAll.strings' # 项目中所有的key
+
+DEFAULT_TARGET_PATH = 'noTranslation.strings' # 未翻译的字符串文件路径
+
+DIDTRANSLATION_TARGET_PATH = 'didTranslation.strings' # 已经翻译的字符串文件路径
+
+
+CHANGE_PREFIX = 'NSLocalizedString(@'
+CHANGE_SUFFIX = ')'
+ISCHANGE = True #是否替换
