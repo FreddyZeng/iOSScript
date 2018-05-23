@@ -148,6 +148,21 @@ def _get_target_didTranslation_path(args):
             exit(1)
         return target_path
 
+
+def _get_target_findChinses_path(args):
+    if args.output is None:
+        return os.path.join(os.getcwd(), config.FINDCHINESE_TARGET_PATH)
+    else:
+        target_path = args.output
+        try:
+            target = open(target_path, 'w')
+            target.close()
+        except OSError:
+            console.print_fail('Error: Invalid file path %s' % target_path)
+            exit(1)
+        return target_path
+
+
 def _get_target_allLocal_path(args):
     if args.output is None:
         return os.path.join(os.getcwd(), config.SourceFileALL_TARGET_PATH)
@@ -202,6 +217,25 @@ def _get_all_localization_strings(paths):
                     all_localization_strings.add(name)
     return all_localization_strings
 
+
+def _get_all_chinese_strings(paths):
+    all_chinese_strings = set()
+    for path in paths:
+        with open(path, 'r') as source_file:
+            for line in source_file:
+                should_skip = False
+                for exclusiveString in config.FINDCHINESE_EXCLUSIVE_TEXT:
+                    if exclusiveString.lower() in line.lower() :
+                        should_skip = True
+                        break
+                if should_skip == False:
+                    strings = re.findall(config.FINDCHINESE_RE, line)
+                    for string in strings:
+                        print(string)
+                        if string.startswith('@'):
+                            string = string.replace('@','', 1)# 仅仅替换第一个@
+                        all_chinese_strings.add(string)
+    return all_chinese_strings
 
 def _find_unlocalized_strings(strings, paths):
     unlocalized_strings = set()
@@ -287,6 +321,13 @@ def _generate_unlocalized_strings_file(strings, path):
     print('%d unlocalized strings found.' % len(strings))
     console.print_bold('unlocalized strings in path: %s' % path)
 
+def _generate_find_chinese_strings_file(strings, path):
+    with open(path, 'w') as target:
+        for name in sorted(strings):
+            target.write('{0}\n'.format(name))
+    call(['open', path])
+    print('%d chinese strings found.' % len(strings))
+    console.print_bold('chinese strings in path: %s' % path)
 
 def _get_args():
     parser = ArgumentParser()
@@ -318,11 +359,7 @@ def main():
 
     project_path = _get_project_path(args)
     print('Current directory: ' + project_path)
-
-    print('Checking localizable files...')
-    localization_paths = _get_localization_paths(project_path)
-    _check_localiztion_format_files(localization_paths)
-
+    
     if args.remove:
         print('Removing duplicate localizable strings...')
         _remove_duplicate_strings_files(localization_paths)
@@ -333,8 +370,21 @@ def main():
         exit(0)
 
 
-    print('Finding alllocalized strings...')
     source_file_paths = _get_source_file_paths(project_path)
+    print('Finding chinese strings...')
+    if config.ISFINDCHINESE:
+    	did_find_chinese_strings = _get_all_chinese_strings(source_file_paths)
+    	find_chinese_path = _get_target_findChinses_path(args)
+    	_generate_find_chinese_strings_file(did_find_chinese_strings, find_chinese_path)
+    	exit()
+
+
+    print('Checking localizable files...')
+    localization_paths = _get_localization_paths(project_path)
+    _check_localiztion_format_files(localization_paths)
+
+    print('Finding alllocalized strings...')
+
     all_localization_strings = _get_all_localization_strings(source_file_paths)
 
     print('Finding didlocalized strings...')
