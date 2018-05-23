@@ -148,6 +148,7 @@ def _get_target_didTranslation_path(args):
             exit(1)
         return target_path
 
+
 def _get_target_findChinses_path(args):
     if args.output is None:
         return os.path.join(os.getcwd(), config.FINDCHINESE_TARGET_PATH)
@@ -160,6 +161,7 @@ def _get_target_findChinses_path(args):
             console.print_fail('Error: Invalid file path %s' % target_path)
             exit(1)
         return target_path
+
 
 def _get_target_allLocal_path(args):
     if args.output is None:
@@ -357,8 +359,7 @@ def main():
 
     project_path = _get_project_path(args)
     print('Current directory: ' + project_path)
-
-
+    
     if args.remove:
         print('Removing duplicate localizable strings...')
         _remove_duplicate_strings_files(localization_paths)
@@ -367,6 +368,7 @@ def main():
         print('Adding new localizable strings...')
         _add_new_strings(localization_paths, args.integrate)
         exit(0)
+
 
     source_file_paths = _get_source_file_paths(project_path)
     print('Finding chinese strings...')
@@ -382,6 +384,7 @@ def main():
     _check_localiztion_format_files(localization_paths)
 
     print('Finding alllocalized strings...')
+
     all_localization_strings = _get_all_localization_strings(source_file_paths)
 
     print('Finding didlocalized strings...')

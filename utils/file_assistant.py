@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
+# -*- coding: UTF-8 -*-
 
 """Utils for operating files."""
 
 import os
 import glob
-
 
 def _should_pass(path, exclusive_paths):
     if exclusive_paths is None:
@@ -78,7 +78,15 @@ def get_paths(root_path, names=None, types=None, exclusive_paths=None):
 def file_contains(path, string):
     with open(path, 'r') as source_file:
         for line in source_file:
-            if string in line:
+            if line.find(string) != -1:
                 return True
         else:
             return False
+
+def fileLine_containStartWith(path, string):
+    with open(path, 'r') as source_file:
+        for line in source_file:
+            if line.find(string) == 0:
+                return line
+        else:
+            return ""
