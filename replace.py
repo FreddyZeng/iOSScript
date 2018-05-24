@@ -3,6 +3,7 @@
 
 import re
 import os
+import chardet
 from argparse import ArgumentParser
 """
 输入文件路径替换
@@ -14,12 +15,33 @@ Usage:
     3. drag .string to terminal.
 """
 
+def convert_encoding(filename, target_encoding):
+    # Backup the origin file.
+
+    # convert file from the source encoding to target encoding
+	with open(filename, 'rb') as source_file:
+		content = source_file.read()
+		source_encoding = chardet.detect(content)['encoding']
+		print(source_encoding)
+		if source_encoding != 'utf-8':
+			content = content.decode(source_encoding) #.encode(source_encoding)
+			if content == None:
+				print('the file no text')
+				exit()
+			with open(filename, 'wb+') as source_file_utf8:
+				content = content.encode(target_encoding)
+				source_file_utf8.write(content)
+
 def main():
 	parser=ArgumentParser()
 	parser.add_argument("path",help=".string file path")
 	args=parser.parse_args()
 	print(args.path)
-	with open(args.path, 'r+',encoding ='UTF-16') as source_file:
+
+	convert_encoding(args.path, 'utf-8')
+
+	with open(args.path, 'r+',encoding ='utf-8') as source_file:
+		pass
 		source_file.write('\n\n// 转换后的:\n\n')
 
 		value = ''
