@@ -43,6 +43,6 @@ DIDTRANSLATION_TARGET_PATH = 'didTranslation.strings' # 已经翻译的字符串
 FINDCHINESE_TARGET_PATH = 'findChinese.strings' #  寻找项目中，存在的中文参数
 ISFINDCHINESE = True
 # FINDCHINESE_RE = '[^(imageNamed|)](?:\=\s*|\:\s*|\,\s*\(\s*|\[\s*|.{0})(@"[^"]*[\u4E00-\u9FA5]+[^"\n]*?")'
-FINDCHINESE_RE = '@"[^"]*[\u4E00-\u9FA5]+[^"\n]*?"'
-FINDCHINESE_EXCLUSIVE_TEXT = ['NSAssert', 'Assert', 'Log', 'NSError', 'NSException', 'imageNamed:']
+FINDCHINESE_RE = '"@[^"]*[\u4E00-\u9FA5]+[^"\n]*?"' #swift 文件，把@去掉
+FINDCHINESE_EXCLUSIVE_TEXT = ['NSAssert', 'Assert', 'Log', 'NSError', 'NSException', 'imageNamed:', 'UIImage.init(named:', 'UIImage(named:', 'print']
 
