@@ -40,9 +40,11 @@ ISCHANGE = False #是否替换
 DEFAULT_TARGET_PATH = 'noTranslation.strings' # 未翻译的字符串文件路径
 DIDTRANSLATION_TARGET_PATH = 'didTranslation.strings' # 已经翻译的字符串文件路径
 
-FINDCHINESE_TARGET_PATH = 'findChinese.strings' #  寻找项目中，存在的中文参数
+FINDCHINESE_INOC_TARGET_PATH = 'findChineseInOC.strings' #  寻找项目中文件存在的中文参数
+FINDCHINESE_INSWIFT_TARGET_PATH = 'findChineseInSwift.strings' #  寻找项目中文件存在的中文参数
 ISFINDCHINESE = True
-# FINDCHINESE_RE = '[^(imageNamed|)](?:\=\s*|\:\s*|\,\s*\(\s*|\[\s*|.{0})(@"[^"]*[\u4E00-\u9FA5]+[^"\n]*?")'
-FINDCHINESE_RE = '"@[^"]*[\u4E00-\u9FA5]+[^"\n]*?"' #swift 文件，把@去掉
+
+FINDCHINESE_RE = '"@[^"]*[\u4E00-\u9FA5]+[^"\n]*?"'
+FINDCHINESE_SWIFT_RE = '"[^"]*[\u4E00-\u9FA5]+[^"\n]*?"'
 FINDCHINESE_EXCLUSIVE_TEXT = ['NSAssert', 'Assert', 'Log', 'NSError', 'NSException', 'imageNamed:', 'UIImage.init(named:', 'UIImage(named:', 'print']
 

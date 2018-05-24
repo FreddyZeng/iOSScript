@@ -149,9 +149,9 @@ def _get_target_didTranslation_path(args):
         return target_path
 
 
-def _get_target_findChinses_path(args):
+def _get_target_findChinses_inOC_path(args):
     if args.output is None:
-        return os.path.join(os.getcwd(), config.FINDCHINESE_TARGET_PATH)
+        return os.path.join(os.getcwd(), config.FINDCHINESE_INOC_TARGET_PATH)
     else:
         target_path = args.output
         try:
@@ -162,6 +162,18 @@ def _get_target_findChinses_path(args):
             exit(1)
         return target_path
 
+def _get_target_findChinses_inSwift_path(args):
+    if args.output is None:
+        return os.path.join(os.getcwd(), config.FINDCHINESE_INSWIFT_TARGET_PATH)
+    else:
+        target_path = args.output
+        try:
+            target = open(target_path, 'w')
+            target.close()
+        except OSError:
+            console.print_fail('Error: Invalid file path %s' % target_path)
+            exit(1)
+        return target_path
 
 def _get_target_allLocal_path(args):
     if args.output is None:
@@ -219,7 +231,8 @@ def _get_all_localization_strings(paths):
 
 
 def _get_all_chinese_strings(paths):
-    all_chinese_strings = set()
+    all_chinese_inM_strings = set()
+    all_chinese_inSwift_strings = set()
     for path in paths:
         with open(path, 'r') as source_file:
             for line in source_file:
@@ -229,13 +242,19 @@ def _get_all_chinese_strings(paths):
                         should_skip = True
                         break
                 if should_skip == False:
-                    strings = re.findall(config.FINDCHINESE_RE, line)
-                    for string in strings:
-                        print(string)
-                        if string.startswith('@'):
-                            string = string.replace('@','', 1)# 仅仅替换第一个@
-                        all_chinese_strings.add(string)
-    return all_chinese_strings
+                    if path.endswith('.swift'):
+                        strings = re.findall(config.FINDCHINESE_SWIFT_RE, line)
+                        for string in strings:
+                            print(string)
+                            all_chinese_inSwift_strings.add(string)
+                    else:
+                        strings = re.findall(config.FINDCHINESE_SWIFT_RE, line)
+                        for string in strings:
+                            print(string)
+                            if string.startswith('@'):
+                                string = string.replace('@','', 1)# 仅仅替换第一个@
+                            all_chinese_inM_strings.add(string)
+    return all_chinese_inM_strings, all_chinese_inSwift_strings
 
 def _find_unlocalized_strings(strings, paths):
     unlocalized_strings = set()
@@ -359,7 +378,7 @@ def main():
 
     project_path = _get_project_path(args)
     print('Current directory: ' + project_path)
-    
+
     if args.remove:
         print('Removing duplicate localizable strings...')
         _remove_duplicate_strings_files(localization_paths)
@@ -373,10 +392,12 @@ def main():
     source_file_paths = _get_source_file_paths(project_path)
     print('Finding chinese strings...')
     if config.ISFINDCHINESE:
-    	did_find_chinese_strings = _get_all_chinese_strings(source_file_paths)
-    	find_chinese_path = _get_target_findChinses_path(args)
-    	_generate_find_chinese_strings_file(did_find_chinese_strings, find_chinese_path)
-    	exit()
+        did_find_chinese_strings = _get_all_chinese_strings(source_file_paths)
+        find_chinese_inOC_path = _get_target_findChinses_inOC_path(args)
+        find_chinese_inSwift_path = _get_target_findChinses_inSwift_path(args)
+        _generate_find_chinese_strings_file(did_find_chinese_strings[0], find_chinese_inOC_path)
+        _generate_find_chinese_strings_file(did_find_chinese_strings[1], find_chinese_inSwift_path)
+        exit()
 
 
     print('Checking localizable files...')
