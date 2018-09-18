@@ -48,3 +48,8 @@ FINDCHINESE_RE = '"@[^"]*[\u4E00-\u9FA5]+[^"\n]*?"'
 FINDCHINESE_SWIFT_RE = '"[^"]*[\u4E00-\u9FA5]+[^"\n]*?"'
 FINDCHINESE_EXCLUSIVE_TEXT = ['NSAssert', 'Assert', 'Log', 'NSError', 'NSException', 'imageNamed:', 'UIImage.init(named:', 'UIImage(named:', 'print']
 
+ASSET_TYPES = ['imageset', 'mp3', 'mp4', 'ttf', 'otf']
+ASSET_SOURCE_FILE_TYPES = ['swift', 'm', 'json', 'xib',
+                           'storyboard', 'js', 'map', 'plist']
+ASSET_PATH_SUFFIX = '/car8891'
+ASSET_DEFAULT_COUNT = 50
